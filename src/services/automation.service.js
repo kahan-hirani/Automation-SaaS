@@ -1,6 +1,6 @@
 import { isValidCron } from "cron-validator";
 
-import Automation from "../models/automationLog.model.js";
+import Automation from "../models/automation.model.js";
 import errorHandler from "../utils/errorHandler.util.js";
 
 const createAutomationService = async (userId, data) => {
