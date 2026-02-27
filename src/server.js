@@ -8,6 +8,7 @@ import cookieParser from 'cookie-parser';
 import sequelize from './config/database.js';
 import errorMiddleware from './middlewares/error.middlware.js';
 import indexRoutes from './routes/index.routes.js';
+import "./schedulers/cron.scheduler.js";
 
 dotenv.config();
 
