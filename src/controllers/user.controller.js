@@ -20,12 +20,18 @@ const registerUser = asyncHandler(async (req, res, next) => {
   });
 
   const token = jwt.sign({ id: newUser.id }, process.env.JWT_SECRET, {
-    expiresIn: "1h",
+    expiresIn: "7d",
   });
 
   res.status(201).json({
     success: true,
     token,
+    user: {
+      id: newUser.id,
+      email: newUser.email,
+      plan: newUser.plan,
+      createdAt: newUser.createdAt,
+    },
   });
 });
 
@@ -49,6 +55,12 @@ const loginUser = asyncHandler(async (req, res, next) => {
   res.status(200).json({
     success: true,
     token,
+    user: {
+      id: user.id,
+      email: user.email,
+      plan: user.plan,
+      createdAt: user.createdAt,
+    },
   });
 });
 
@@ -65,7 +77,9 @@ const logoutUser = asyncHandler(async (req, res, next) => {
 });
 
 const getProfile = asyncHandler(async (req, res, next) => {
-  const user = await User.findByPk(req.user.id);
+  const user = await User.findByPk(req.user.id, {
+    attributes: { exclude: ['password'] }
+  });
   if (!user) {
     return next(new errorHandler("User not found", 404));
   }

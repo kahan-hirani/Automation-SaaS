@@ -43,4 +43,17 @@ const deleteAutomation = asyncHandler(async (req, res, next) => {
   });
 });
 
-export { createAutomation, getAutomation, updateAutomation, getAllAutomations, deleteAutomation };
+const toggleAutomation = asyncHandler(async (req, res, next) => {
+  const automation = await getAutomationService(req.user.id, req.params.id);
+  if (!automation) throw new errorHandler("Automation not found", 404);
+  
+  automation.isActive = !automation.isActive;
+  await automation.save();
+  
+  res.status(200).json({
+    success: true,
+    automation,
+  });
+});
+
+export { createAutomation, getAutomation, updateAutomation, getAllAutomations, deleteAutomation, toggleAutomation };
