@@ -20,6 +20,12 @@ const User = sequelize.define("User", {
   password: {
     type: DataTypes.STRING,
     allowNull: false
+  },
+
+  plan: {
+    type: DataTypes.ENUM('free', 'pro', 'enterprise'),
+    defaultValue: 'free',
+    allowNull: false
   }
 
 }, {

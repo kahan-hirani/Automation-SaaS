@@ -52,7 +52,12 @@ cron.schedule("* * * * *", async () => {
           {
             jobId,
             removeOnComplete: true,
-            removeOnFail: true
+            removeOnFail: false, // Keep failed jobs for analysis
+            attempts: 3, // Retry 3 times
+            backoff: {
+              type: 'exponential',
+              delay: 2000 // Start with 2 second delay
+            }
           }
         );
 

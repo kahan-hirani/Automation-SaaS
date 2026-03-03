@@ -1,7 +1,16 @@
 import { isValidCron } from "cron-validator";
 
 import Automation from "../models/automation.model.js";
+import User from "../models/user.model.js";
 import errorHandler from "../utils/errorHandler.util.js";
+import logger from "../utils/logger.util.js";
+
+// Plan-based limits
+const PLAN_LIMITS = {
+  free: 5,
+  pro: 50,
+  enterprise: 500
+};
 
 const createAutomationService = async (userId, data) => {
   const { name, targetUrl, schedule } = data || {};
@@ -19,10 +28,23 @@ const createAutomationService = async (userId, data) => {
     throw new errorHandler("Invalid cron schedule", 400);
   }
 
+  // Get user's plan
+  const user = await User.findByPk(userId);
+  if (!user) {
+    throw new errorHandler("User not found", 404);
+  }
+
+  const userPlan = user.plan || 'free';
+  const limit = PLAN_LIMITS[userPlan];
+
   const count = await Automation.count({ where: { userId } });
 
-  if (count >= 10) {
-    throw new errorHandler("Automation limit reached", 400);
+  if (count >= limit) {
+    logger.warn(`User ${userId} reached automation limit for ${userPlan} plan`);
+    throw new errorHandler(
+      `Automation limit reached for ${userPlan} plan (${limit} automations). Upgrade to create more.`, 
+      400
+    );
   }
 
   const automation = await Automation.create({
@@ -31,6 +53,8 @@ const createAutomationService = async (userId, data) => {
     targetUrl,
     schedule,
   });
+
+  logger.info(`Automation created: ${automation.id} by user: ${userId}`);
 
   return automation;
 };

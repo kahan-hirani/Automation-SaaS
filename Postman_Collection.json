@@ -1,0 +1,419 @@
+{
+  "info": {
+    "name": "Automation SaaS API - Complete Testing",
+    "description": "Production-grade automation SaaS backend testing collection",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{BASE_URL}}",
+          "host": ["{{BASE_URL}}"]
+        }
+      }
+    },
+    {
+      "name": "2. Register User",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code === 201) {",
+              "    var jsonData = pm.response.json();",
+              "    pm.environment.set(\"TOKEN\", jsonData.token);",
+              "    console.log(\"Token saved:\", jsonData.token);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"SecurePassword123!\"\n}"
+        },
+        "url": {
+          "raw": "{{BASE_URL}}/auth/users/register",
+          "host": ["{{BASE_URL}}"],
+          "path": ["auth", "users", "register"]
+        }
+      }
+    },
+    {
+      "name": "3. Login User",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code === 200) {",
+              "    var jsonData = pm.response.json();",
+              "    pm.environment.set(\"TOKEN\", jsonData.token);",
+              "    console.log(\"Token saved:\", jsonData.token);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"SecurePassword123!\"\n}"
+        },
+        "url": {
+          "raw": "{{BASE_URL}}/auth/users/login",
+          "host": ["{{BASE_URL}}"],
+          "path": ["auth", "users", "login"]
+        }
+      }
+    },
+    {
+      "name": "4. Get User Profile",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{TOKEN}}"
+          }
+        ],
+        "url": {
+          "raw": "{{BASE_URL}}/auth/users/profile",
+          "host": ["{{BASE_URL}}"],
+          "path": ["auth", "users", "profile"]
+        }
+      }
+    },
+    {
+      "name": "5. Create Automation (Every Minute)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code === 201) {",
+              "    var jsonData = pm.response.json();",
+              "    pm.environment.set(\"AUTOMATION_ID\", jsonData.automation.id);",
+              "    console.log(\"Automation ID saved:\", jsonData.automation.id);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{TOKEN}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Check Google Homepage\",\n  \"targetUrl\": \"https://www.google.com\",\n  \"schedule\": \"* * * * *\"\n}"
+        },
+        "url": {
+          "raw": "{{BASE_URL}}/automations/create-automation",
+          "host": ["{{BASE_URL}}"],
+          "path": ["automations", "create-automation"]
+        }
+      }
+    },
+    {
+      "name": "6. Create Automation (Every 5 Minutes)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{TOKEN}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Monitor GitHub\",\n  \"targetUrl\": \"https://github.com\",\n  \"schedule\": \"*/5 * * * *\"\n}"
+        },
+        "url": {
+          "raw": "{{BASE_URL}}/automations/create-automation",
+          "host": ["{{BASE_URL}}"],
+          "path": ["automations", "create-automation"]
+        }
+      }
+    },
+    {
+      "name": "7. Get All Automations",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{TOKEN}}"
+          }
+        ],
+        "url": {
+          "raw": "{{BASE_URL}}/automations",
+          "host": ["{{BASE_URL}}"],
+          "path": ["automations"]
+        }
+      }
+    },
+    {
+      "name": "8. Get Single Automation",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{TOKEN}}"
+          }
+        ],
+        "url": {
+          "raw": "{{BASE_URL}}/automations/{{AUTOMATION_ID}}",
+          "host": ["{{BASE_URL}}"],
+          "path": ["automations", "{{AUTOMATION_ID}}"]
+        }
+      }
+    },
+    {
+      "name": "9. Get All Logs",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{TOKEN}}"
+          }
+        ],
+        "url": {
+          "raw": "{{BASE_URL}}/logs?limit=50",
+          "host": ["{{BASE_URL}}"],
+          "path": ["logs"],
+          "query": [
+            {
+              "key": "limit",
+              "value": "50"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "10. Get Logs for Automation",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{TOKEN}}"
+          }
+        ],
+        "url": {
+          "raw": "{{BASE_URL}}/logs/{{AUTOMATION_ID}}",
+          "host": ["{{BASE_URL}}"],
+          "path": ["logs", "{{AUTOMATION_ID}}"]
+        }
+      }
+    },
+    {
+      "name": "11. Get Log Statistics",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{TOKEN}}"
+          }
+        ],
+        "url": {
+          "raw": "{{BASE_URL}}/logs/stats",
+          "host": ["{{BASE_URL}}"],
+          "path": ["logs", "stats"]
+        }
+      }
+    },
+    {
+      "name": "12. Get System Metrics",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{TOKEN}}"
+          }
+        ],
+        "url": {
+          "raw": "{{BASE_URL}}/metrics?timeRange=24h",
+          "host": ["{{BASE_URL}}"],
+          "path": ["metrics"],
+          "query": [
+            {
+              "key": "timeRange",
+              "value": "24h"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "13. Update Automation (Disable)",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{TOKEN}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"isActive\": false,\n  \"name\": \"Check Google Homepage (DISABLED)\"\n}"
+        },
+        "url": {
+          "raw": "{{BASE_URL}}/automations/{{AUTOMATION_ID}}",
+          "host": ["{{BASE_URL}}"],
+          "path": ["automations", "{{AUTOMATION_ID}}"]
+        }
+      }
+    },
+    {
+      "name": "14. Update Automation (Re-enable)",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{TOKEN}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"isActive\": true,\n  \"name\": \"Check Google Homepage\"\n}"
+        },
+        "url": {
+          "raw": "{{BASE_URL}}/automations/{{AUTOMATION_ID}}",
+          "host": ["{{BASE_URL}}"],
+          "path": ["automations", "{{AUTOMATION_ID}}"]
+        }
+      }
+    },
+    {
+      "name": "15. Delete Automation",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{TOKEN}}"
+          }
+        ],
+        "url": {
+          "raw": "{{BASE_URL}}/automations/{{AUTOMATION_ID}}",
+          "host": ["{{BASE_URL}}"],
+          "path": ["automations", "{{AUTOMATION_ID}}"]
+        }
+      }
+    },
+    {
+      "name": "16. Test Invalid Cron Schedule",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{TOKEN}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Invalid Schedule Test\",\n  \"targetUrl\": \"https://www.google.com\",\n  \"schedule\": \"invalid-cron\"\n}"
+        },
+        "url": {
+          "raw": "{{BASE_URL}}/automations/create-automation",
+          "host": ["{{BASE_URL}}"],
+          "path": ["automations", "create-automation"]
+        }
+      }
+    },
+    {
+      "name": "17. Test Invalid URL",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{TOKEN}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Invalid URL Test\",\n  \"targetUrl\": \"not-a-valid-url\",\n  \"schedule\": \"* * * * *\"\n}"
+        },
+        "url": {
+          "raw": "{{BASE_URL}}/automations/create-automation",
+          "host": ["{{BASE_URL}}"],
+          "path": ["automations", "create-automation"]
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "BASE_URL",
+      "value": "http://localhost:3000/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "TOKEN",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "AUTOMATION_ID",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}

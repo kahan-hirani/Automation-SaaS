@@ -5,6 +5,11 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
+POSTMAN_TESTING_GUIDE.md
+QUICK_START.md
+README.md
+SETUP_GUIDE.md
+IMPLEMENTATION_SUMMARY.md
 
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
