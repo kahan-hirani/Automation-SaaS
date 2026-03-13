@@ -7,7 +7,7 @@ yarn-error.log*
 lerna-debug.log*
 POSTMAN_TESTING_GUIDE.md
 QUICK_START.md
-README.md
+# README.md
 SETUP_GUIDE.md
 IMPLEMENTATION_SUMMARY.md
 
