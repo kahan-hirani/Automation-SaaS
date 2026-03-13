@@ -7,6 +7,82 @@ import puppeteer from "puppeteer";
 import { sendEmail } from "../services/email.service.js";
 import logger from "../utils/logger.util.js";
 
+const HEALTH_LEVELS = {
+  HEALTHY: "healthy",
+  DEGRADED: "degraded",
+  UNHEALTHY: "unhealthy"
+};
+
+const evaluateWebsiteHealth = ({ httpStatus, responseTime, contentLength }) => {
+  const hasErrorStatus = !httpStatus || httpStatus >= 400;
+  const isSlow = responseTime >= 5000;
+  const hasNoContent = !contentLength || Number.isNaN(contentLength) || contentLength <= 0;
+
+  if (hasErrorStatus) {
+    return {
+      level: HEALTH_LEVELS.UNHEALTHY,
+      reason: `HTTP status is ${httpStatus || "unknown"}`
+    };
+  }
+
+  if (isSlow || hasNoContent) {
+    const reasons = [];
+    if (isSlow) reasons.push(`high response time (${responseTime}ms)`);
+    if (hasNoContent) reasons.push("empty or missing content");
+
+    return {
+      level: HEALTH_LEVELS.DEGRADED,
+      reason: reasons.join(" and ")
+    };
+  }
+
+  return {
+    level: HEALTH_LEVELS.HEALTHY,
+    reason: "status and response metrics are within expected range"
+  };
+};
+
+const buildHealthEmail = ({ automation, title, httpStatus, executionTime, responseTime, contentLength, health }) => {
+  const healthMap = {
+    [HEALTH_LEVELS.HEALTHY]: {
+      icon: "✅",
+      label: "Healthy",
+      subject: `✅ Automation "${automation.name}" Health Check: Healthy`,
+      recommendation: "No action needed. The site appears to be operating normally."
+    },
+    [HEALTH_LEVELS.DEGRADED]: {
+      icon: "⚠️",
+      label: "Degraded",
+      subject: `⚠️ Automation "${automation.name}" Health Check: Degraded`,
+      recommendation: "Review server performance, upstream dependencies, and recent deployment changes."
+    },
+    [HEALTH_LEVELS.UNHEALTHY]: {
+      icon: "🚨",
+      label: "Unhealthy",
+      subject: `🚨 Automation "${automation.name}" Health Check: Unhealthy`,
+      recommendation: "Immediate investigation is recommended. Check hosting, DNS/CDN, and origin server health."
+    }
+  };
+
+  const config = healthMap[health.level] || healthMap[HEALTH_LEVELS.UNHEALTHY];
+
+  return {
+    subject: config.subject,
+    html: `
+      <h2>${config.icon} Website Health Check: ${config.label}</h2>
+      <p><strong>Name:</strong> ${automation.name}</p>
+      <p><strong>URL:</strong> ${automation.targetUrl}</p>
+      <p><strong>Page Title:</strong> ${title}</p>
+      <p><strong>HTTP Status:</strong> ${httpStatus}</p>
+      <p><strong>Execution Time:</strong> ${executionTime}ms</p>
+      <p><strong>Response Time:</strong> ${responseTime}ms</p>
+      <p><strong>Content Length:</strong> ${contentLength}</p>
+      <p><strong>Health Reason:</strong> ${health.reason}</p>
+      <p><strong>Recommendation:</strong> ${config.recommendation}</p>
+    `
+  };
+};
+
 const worker = new Worker(
   "automationQueue",
   async (job) => {
@@ -47,6 +123,12 @@ const worker = new Worker(
       
       const executionTime = Date.now() - startTime;
       const responseTime = Date.now() - launchStart;
+      const parsedContentLength = parseInt(contentLength, 10) || 0;
+      const health = evaluateWebsiteHealth({
+        httpStatus,
+        responseTime,
+        contentLength: parsedContentLength
+      });
 
       // Log success with metadata
       await AutomationLog.create({
@@ -55,27 +137,31 @@ const worker = new Worker(
         result: { 
           title,
           httpStatus,
-          contentLength: parseInt(contentLength),
+          contentLength: parsedContentLength,
           executionTime,
-          responseTime
+          responseTime,
+          health
         }
       });
 
-      logger.info(`Automation ${automationId} completed successfully in ${executionTime}ms`);
+      logger.info(`Automation ${automationId} completed in ${executionTime}ms with health=${health.level}`);
 
-      // Send success email
+      // Send health-based email
       if (automation.User && automation.User.email) {
+        const { subject, html } = buildHealthEmail({
+          automation,
+          title,
+          httpStatus,
+          executionTime,
+          responseTime,
+          contentLength: parsedContentLength,
+          health
+        });
+
         await sendEmail({
           to: automation.User.email,
-          subject: `✅ Automation "${automation.name}" Successful`,
-          html: `
-            <h2>Automation Completed Successfully</h2>
-            <p><strong>Name:</strong> ${automation.name}</p>
-            <p><strong>URL:</strong> ${automation.targetUrl}</p>
-            <p><strong>Page Title:</strong> ${title}</p>
-            <p><strong>Execution Time:</strong> ${executionTime}ms</p>
-            <p><strong>HTTP Status:</strong> ${httpStatus}</p>
-          `
+          subject,
+          html
         });
       }
 
