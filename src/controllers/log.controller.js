@@ -49,7 +49,7 @@ const getAllUserLogs = asyncHandler(async (req, res, next) => {
     where: { automationId: automationIds },
     include: [{
       model: Automation,
-      attributes: ['name', 'targetUrl']
+      attributes: ['name', 'targetUrl', 'automationType', 'config']
     }],
     order: [['createdAt', 'DESC']],
     limit: parseInt(req.query.limit) || 100
