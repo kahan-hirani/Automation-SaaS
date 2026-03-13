@@ -40,7 +40,8 @@ app.use(helmet());
 app.use(generalLimiter);
 
 // Body parser
-app.use(express.json());
+app.use(express.json({ limit: '3mb' }));
+app.use(express.urlencoded({ extended: true, limit: '3mb' }));
 app.use(cookieParser());
 
 // Request logging
