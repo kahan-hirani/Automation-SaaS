@@ -16,12 +16,41 @@ import "./services/metrics.service.js";
 const app = express();
 const PORT = process.env.PORT || 3000;
 const isProduction = process.env.NODE_ENV === 'production';
+
+// ─── CORS ────────────────────────────────────────────────────────────────────
+// Must be registered FIRST — before helmet, rate limiter, and all routes.
+// Otherwise preflight OPTIONS requests never receive Access-Control-Allow-Origin.
 const defaultOrigins = ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:3000'];
 const allowedOrigins = (process.env.CORS_ORIGINS || '')
   .split(',')
-  .map((origin) => origin.trim())
+  .map((o) => o.trim())
   .filter(Boolean);
 const corsOrigins = allowedOrigins.length > 0 ? allowedOrigins : defaultOrigins;
+
+if (isProduction && allowedOrigins.length === 0) {
+  logger.warn('CORS_ORIGINS is not set in production — falling back to localhost origins. Set CORS_ORIGINS on Render.');
+}
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    // Allow server-to-server requests (no Origin header) and listed origins
+    if (!origin || corsOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    logger.warn(`CORS blocked request from origin: ${origin}`);
+    return callback(new Error(`Origin ${origin} not allowed by CORS`));
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+};
+
+// Handle preflight OPTIONS requests for all routes
+app.options('*', cors(corsOptions));
+
+// Apply CORS to all routes
+app.use(cors(corsOptions));
+// ─────────────────────────────────────────────────────────────────────────────
 
 if (process.env.RUN_WORKER_IN_API === 'true' && process.env.VERCEL !== '1') {
   import('./workers/automation.worker.js')
@@ -34,21 +63,6 @@ sequelize.authenticate()
   .catch(err => logger.error("Unable to connect to the database:", err));
 
 sequelize.sync({ alter: !isProduction });
-
-app.get('/', (req, res) => {
-  res.send('Automation SaaS API - Production Ready');
-});
-
-// CORS middleware - Allow frontend to connect
-app.use(cors({
-  origin: (origin, callback) => {
-    if (!origin || corsOrigins.includes(origin)) {
-      return callback(null, true);
-    }
-    return callback(new Error('Not allowed by CORS'));
-  },
-  credentials: true
-}));
 
 // Security middleware
 app.use(helmet());
@@ -70,6 +84,10 @@ app.use((req, res, next) => {
   next();
 });
 
+app.get('/', (req, res) => {
+  res.send('Automation SaaS API - Production Ready');
+});
+
 app.use('/api/v1', indexRoutes);
 
 app.use(errorMiddleware);
@@ -78,7 +96,9 @@ if (process.env.VERCEL !== '1') {
   app.listen(PORT, () => {
     logger.info(`Server is running on http://localhost:${PORT}`);
     logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
+    logger.info(`CORS allowed origins: ${corsOrigins.join(', ')}`);
   });
 }
 
 export default app;
+
