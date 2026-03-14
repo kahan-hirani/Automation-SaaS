@@ -16,12 +16,25 @@ import "./services/metrics.service.js";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const isProduction = process.env.NODE_ENV === 'production';
+const defaultOrigins = ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:3000'];
+const allowedOrigins = (process.env.CORS_ORIGINS || '')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+const corsOrigins = allowedOrigins.length > 0 ? allowedOrigins : defaultOrigins;
+
+if (process.env.RUN_WORKER_IN_API === 'true' && process.env.VERCEL !== '1') {
+  import('./workers/automation.worker.js')
+    .then(() => logger.info('Worker started in API process'))
+    .catch((err) => logger.error('Failed to start worker in API process', err));
+}
 
 sequelize.authenticate()
   .then(() => logger.info("Database connected successfully"))
   .catch(err => logger.error("Unable to connect to the database:", err));
 
-sequelize.sync({ alter: true });
+sequelize.sync({ alter: !isProduction });
 
 app.get('/', (req, res) => {
   res.send('Automation SaaS API - Production Ready');
@@ -29,7 +42,12 @@ app.get('/', (req, res) => {
 
 // CORS middleware - Allow frontend to connect
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:3000'],
+  origin: (origin, callback) => {
+    if (!origin || corsOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    return callback(new Error('Not allowed by CORS'));
+  },
   credentials: true
 }));
 

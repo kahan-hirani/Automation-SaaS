@@ -1,10 +1,30 @@
 import { Sequelize } from "sequelize";
 
-const sequelize = new Sequelize("automation_saas", "postgres", "kahan@post123", {
-  host: "localhost",
+const commonOptions = {
   dialect: "postgres",
-  port: 5432,
   logging: false,
-});
+};
+
+const sslEnabled = process.env.DB_SSL === "true";
+const dialectOptions = sslEnabled
+  ? { ssl: { require: true, rejectUnauthorized: false } }
+  : undefined;
+
+const sequelize = process.env.DATABASE_URL
+  ? new Sequelize(process.env.DATABASE_URL, {
+      ...commonOptions,
+      dialectOptions,
+    })
+  : new Sequelize(
+      process.env.DB_NAME || "automation_saas",
+      process.env.DB_USER || "postgres",
+      process.env.DB_PASSWORD || "postgres",
+      {
+        ...commonOptions,
+        host: process.env.DB_HOST || "localhost",
+        port: parseInt(process.env.DB_PORT || "5432", 10),
+        dialectOptions,
+      }
+    );
 
 export default sequelize;
