@@ -5,7 +5,9 @@ const commonOptions = {
   logging: false,
 };
 
-const sslEnabled = process.env.DB_SSL === "true" || (process.env.DATABASE_URL && process.env.DATABASE_URL.includes("supabase.com"));
+const dbUrl = process.env.DATABASE_URL || "";
+const isSupabaseUrl = dbUrl.includes("supabase.co") || dbUrl.includes("supabase.com");
+const sslEnabled = process.env.DB_SSL === "true" || isSupabaseUrl;
 
 const dialectOptions = sslEnabled
   ? { ssl: { require: true, rejectUnauthorized: false } }
