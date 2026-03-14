@@ -1,9 +1,31 @@
 import nodemailer from 'nodemailer';
 import logger from '../utils/logger.util.js';
 
+const hasGmailOAuth2Config = () => {
+  return Boolean(
+    process.env.GMAIL_CLIENT_ID &&
+    process.env.GMAIL_CLIENT_SECRET &&
+    process.env.GMAIL_REFRESH_TOKEN &&
+    process.env.SMTP_USER
+  );
+};
+
 // Create reusable transporter
 const createTransporter = () => {
   const smtpPass = (process.env.SMTP_PASS || '').replace(/\s+/g, '').trim();
+
+  if (hasGmailOAuth2Config()) {
+    return nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        type: 'OAuth2',
+        user: process.env.SMTP_USER,
+        clientId: process.env.GMAIL_CLIENT_ID,
+        clientSecret: process.env.GMAIL_CLIENT_SECRET,
+        refreshToken: process.env.GMAIL_REFRESH_TOKEN,
+      },
+    });
+  }
 
   return nodemailer.createTransport({
     host: process.env.SMTP_HOST || 'smtp.gmail.com',
@@ -26,10 +48,12 @@ export const verifyEmailTransport = async () => {
   try {
     const transporter = createTransporter();
     await transporter.verify();
-    logger.info('SMTP connection verified successfully');
+    const transportMode = hasGmailOAuth2Config() ? 'Gmail OAuth2' : 'SMTP';
+    logger.info(`${transportMode} email transport verified successfully`);
     return true;
   } catch (error) {
-    logger.error(`SMTP verification failed: ${error.message}`);
+    const transportMode = hasGmailOAuth2Config() ? 'Gmail OAuth2' : 'SMTP';
+    logger.error(`${transportMode} verification failed: ${error.message}`);
     return false;
   }
 };
