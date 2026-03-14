@@ -18,6 +18,11 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const isProduction = process.env.NODE_ENV === 'production';
 
+// Render runs behind a reverse proxy; trust first hop for correct client IP/rate limiting.
+if (isProduction) {
+  app.set('trust proxy', 1);
+}
+
 // ─── CORS ────────────────────────────────────────────────────────────────────
 // Must be registered FIRST — before helmet, rate limiter, and all routes.
 // Otherwise preflight OPTIONS requests never receive Access-Control-Allow-Origin.
