@@ -3,15 +3,35 @@ import logger from '../utils/logger.util.js';
 
 // Create reusable transporter
 const createTransporter = () => {
+  const smtpPass = (process.env.SMTP_PASS || '').replace(/\s+/g, '').trim();
+
   return nodemailer.createTransport({
     host: process.env.SMTP_HOST || 'smtp.gmail.com',
     port: parseInt(process.env.SMTP_PORT) || 587,
     secure: process.env.SMTP_SECURE === 'true',
+    connectionTimeout: 15000,
+    greetingTimeout: 10000,
+    socketTimeout: 20000,
     auth: {
       user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS
+      pass: smtpPass
     }
   });
+};
+
+/**
+ * Verify SMTP connectivity/auth at startup (non-fatal).
+ */
+export const verifyEmailTransport = async () => {
+  try {
+    const transporter = createTransporter();
+    await transporter.verify();
+    logger.info('SMTP connection verified successfully');
+    return true;
+  } catch (error) {
+    logger.error(`SMTP verification failed: ${error.message}`);
+    return false;
+  }
 };
 
 /**

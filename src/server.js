@@ -10,6 +10,7 @@ import errorMiddleware from './middlewares/error.middlware.js';
 import indexRoutes from './routes/index.routes.js';
 import { generalLimiter } from './middlewares/rateLimit.middleware.js';
 import logger from './utils/logger.util.js';
+import { verifyEmailTransport } from './services/email.service.js';
 import "./schedulers/cron.scheduler.js";
 import "./services/metrics.service.js";
 
@@ -109,7 +110,10 @@ async function startServer() {
     logger.error('Database sync warning (non-fatal)', { error: err.message });
   }
 
-  // 3. Start the HTTP server
+  // 3. Verify SMTP configuration (non-fatal)
+  await verifyEmailTransport();
+
+  // 4. Start the HTTP server
   if (process.env.VERCEL !== '1') {
     app.listen(PORT, () => {
       logger.info(`Server is running on http://localhost:${PORT}`);
