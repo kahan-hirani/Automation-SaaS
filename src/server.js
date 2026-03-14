@@ -52,18 +52,6 @@ app.options('*', cors(corsOptions));
 app.use(cors(corsOptions));
 // ─────────────────────────────────────────────────────────────────────────────
 
-if (process.env.RUN_WORKER_IN_API === 'true' && process.env.VERCEL !== '1') {
-  import('./workers/automation.worker.js')
-    .then(() => logger.info('Worker started in API process'))
-    .catch((err) => logger.error('Failed to start worker in API process', err));
-}
-
-sequelize.authenticate()
-  .then(() => logger.info("Database connected successfully"))
-  .catch(err => logger.error("Unable to connect to the database:", err));
-
-sequelize.sync({ alter: !isProduction });
-
 // Security middleware
 app.use(helmet());
 
@@ -92,13 +80,43 @@ app.use('/api/v1', indexRoutes);
 
 app.use(errorMiddleware);
 
-if (process.env.VERCEL !== '1') {
-  app.listen(PORT, () => {
-    logger.info(`Server is running on http://localhost:${PORT}`);
-    logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
-    logger.info(`CORS allowed origins: ${corsOrigins.join(', ')}`);
-  });
+// ─── Worker in API (optional) ─────────────────────────────────────────────────
+if (process.env.RUN_WORKER_IN_API === 'true' && process.env.VERCEL !== '1') {
+  import('./workers/automation.worker.js')
+    .then(() => logger.info('Worker started in API process'))
+    .catch((err) => logger.error('Failed to start worker in API process', err));
 }
 
-export default app;
+// ─── Server Startup ───────────────────────────────────────────────────────────
+async function startServer() {
+  // 1. Verify DB is reachable
+  try {
+    await sequelize.authenticate();
+    logger.info('Database connected successfully');
+  } catch (err) {
+    logger.error('Unable to connect to the database — server cannot start', { error: err.message });
+    process.exit(1);
+  }
 
+  // 2. Sync models (alter only in dev — never in production to avoid data loss)
+  try {
+    await sequelize.sync({ alter: !isProduction });
+    logger.info('Database models synced');
+  } catch (err) {
+    // Non-fatal in production — tables should already exist
+    logger.error('Database sync warning (non-fatal)', { error: err.message });
+  }
+
+  // 3. Start the HTTP server
+  if (process.env.VERCEL !== '1') {
+    app.listen(PORT, () => {
+      logger.info(`Server is running on http://localhost:${PORT}`);
+      logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
+      logger.info(`CORS allowed origins: ${corsOrigins.join(', ')}`);
+    });
+  }
+}
+
+startServer();
+
+export default app;
