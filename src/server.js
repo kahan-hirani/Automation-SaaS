@@ -24,6 +24,7 @@ const defaultOrigins = ['http://localhost:5173', 'http://localhost:5174', 'http:
 const allowedOrigins = (process.env.CORS_ORIGINS || '')
   .split(',')
   .map((o) => o.trim())
+  .map((o) => o.replace(/\/+$/, ''))
   .filter(Boolean);
 const corsOrigins = allowedOrigins.length > 0 ? allowedOrigins : defaultOrigins;
 
@@ -33,8 +34,9 @@ if (isProduction && allowedOrigins.length === 0) {
 
 const corsOptions = {
   origin: (origin, callback) => {
+    const normalizedOrigin = origin ? origin.replace(/\/+$/, '') : origin;
     // Allow server-to-server requests (no Origin header) and listed origins
-    if (!origin || corsOrigins.includes(origin)) {
+    if (!normalizedOrigin || corsOrigins.includes(normalizedOrigin)) {
       return callback(null, true);
     }
     logger.warn(`CORS blocked request from origin: ${origin}`);
