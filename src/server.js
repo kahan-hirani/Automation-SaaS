@@ -45,8 +45,8 @@ const corsOptions = {
   allowedHeaders: ['Content-Type', 'Authorization'],
 };
 
-// Handle preflight OPTIONS requests for all routes
-app.options('*', cors(corsOptions));
+// Handle preflight OPTIONS requests for all routes (Express 5-safe pattern)
+app.options(/.*/, cors(corsOptions));
 
 // Apply CORS to all routes
 app.use(cors(corsOptions));
